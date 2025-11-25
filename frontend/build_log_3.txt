@@ -1,0 +1,15 @@
+
+> frontend@0.0.0 build
+> vite build
+
+[36mvite v7.2.2 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 43 modules transformed.
+[31m✗[39m Build failed in 455ms
+[31merror during build:
+[31mCould not resolve "../../../context/AppContext" from "src/pages/dashboard/admin/ProblemStatements.jsx"[31m
+file: [36mM:/projects/rsih/RSIH/frontend/src/pages/dashboard/admin/ProblemStatements.jsx[31m
+    at getRollupError (file:///M:/projects/rsih/RSIH/frontend/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at error (file:///M:/projects/rsih/RSIH/frontend/node_modules/rollup/dist/es/shared/parseAst.js:397:42)
+    at ModuleLoader.handleInvalidResolvedId (file:///M:/projects/rsih/RSIH/frontend/node_modules/rollup/dist/es/shared/node-entry.js:21576:24)
+    at file:///M:/projects/rsih/RSIH/frontend/node_modules/rollup/dist/es/shared/node-entry.js:21536:26[39m

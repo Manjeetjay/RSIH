@@ -17,11 +17,11 @@ const getTeamIdFromLeader = async (leaderId) => {
   return result.rows[0].id;
 };
 
-// ✅ Submit Idea for a PS
+// ✅ Submit Idea for a PS (ONE SUBMISSION PER TEAM, MAX 50 PER PS)
 export const submitIdea = async (req, res) => {
   const { teamId, psId, title, abstract } = req.body;
   const leaderId = req.user.id;
-  
+
   try {
     // If teamId not provided, get it from leader_id
     let finalTeamId = teamId;
@@ -31,16 +31,31 @@ export const submitIdea = async (req, res) => {
         return res.status(404).json({ message: "Team not found for this leader." });
       }
     }
-    
+
     // Verify the team belongs to this leader
     const teamCheck = await pool.query("SELECT id FROM teams WHERE id=$1 AND leader_id=$2", [finalTeamId, leaderId]);
     if (teamCheck.rows.length === 0) {
       return res.status(403).json({ message: "Access denied. Team does not belong to you." });
     }
 
-    const existing = await pool.query("SELECT * FROM submissions WHERE team_id=$1 AND ps_id=$2", [finalTeamId, psId]);
-    if (existing.rows.length > 0)
-      return res.status(400).json({ message: "Idea already submitted for this PS." });
+    // ✅ CHECK: Team can only submit ONE idea total (not per PS)
+    const existing = await pool.query("SELECT * FROM submissions WHERE team_id=$1", [finalTeamId]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({
+        error: "Your team has already submitted an idea. Each team can only submit one idea total."
+      });
+    }
+
+    // ✅ CHECK: Problem statement can only have 50 submissions max
+    const psSubmissionCount = await pool.query(
+      "SELECT COUNT(*) FROM submissions WHERE ps_id=$1",
+      [psId]
+    );
+    if (parseInt(psSubmissionCount.rows[0].count) >= 50) {
+      return res.status(400).json({
+        error: "This problem statement has reached its submission limit (50 submissions max)."
+      });
+    }
 
     const result = await pool.query(
       "INSERT INTO submissions (team_id, ps_id, title, abstract, status) VALUES ($1, $2, $3, $4, 'SUBMITTED') RETURNING *",

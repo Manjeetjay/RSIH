@@ -2,6 +2,8 @@ import { useState } from "react";
 import api from "../services/api";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
 
 export default function SpocRegistration() {
   const [form, setForm] = useState({
@@ -37,121 +39,177 @@ export default function SpocRegistration() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black py-12 px-4">
-      <motion.form
-        onSubmit={handleSubmit}
+    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)] bg-slate-50 py-12 px-4">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-10 rounded-xl shadow-2xl w-full max-w-2xl"
+        className="max-w-2xl w-full bg-white p-8 md:p-10 rounded-xl shadow-lg border border-slate-200"
       >
-        <h2 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          SPOC Registration
-        </h2>
-        <p className="text-center text-gray-600 mb-8">
-          Register as a Single Point of Contact for your institution
-        </p>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Full Name *</label>
-            <input
-              name="name"
-              placeholder="Enter your full name"
-              value={form.name}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Age *</label>
-            <input
-              name="age"
-              type="number"
-              placeholder="Enter your age"
-              value={form.age}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Email *</label>
-            <input
-              name="email"
-              type="email"
-              placeholder="Enter your email"
-              value={form.email}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Phone Number *</label>
-            <input
-              name="phone"
-              placeholder="Enter your phone number"
-              value={form.phone}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div className="md:col-span-2">
-            <label className="block text-gray-700 font-medium mb-2">Institution Name *</label>
-            <input
-              name="institution"
-              placeholder="Enter your institution name"
-              value={form.institution}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div className="md:col-span-2">
-            <label className="block text-gray-700 font-medium mb-2">Password *</label>
-            <input
-              name="password"
-              type="password"
-              placeholder="Set a secure password"
-              value={form.password}
-              className="input"
-              onChange={handleChange}
-              required
-            />
-          </div>
-          
-          <div className="md:col-span-2">
-            <label className="block text-gray-700 font-medium mb-2">
-              Upload Nomination PDF *
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={handleFile}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-400 focus:outline-none"
-              required
-            />
-            {form.pdf && (
-              <p className="text-sm text-green-600 mt-1">Selected: {form.pdf.name}</p>
-            )}
-          </div>
+        <div className="text-center mb-10">
+          <h2 className="text-3xl font-extrabold text-slate-900">
+            SPOC Registration
+          </h2>
+          <p className="mt-2 text-slate-600">
+            Register as a Single Point of Contact for your institution
+          </p>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold text-lg mt-6 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "Registering..." : "Register as SPOC"}
-        </button>
-      </motion.form>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Input
+              label="Full Name *"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              label="Age *"
+              name="age"
+              type="number"
+              value={form.age}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              label="Email *"
+              name="email"
+              type="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+
+            <Input
+              label="Phone Number *"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              required
+            />
+
+            <div className="md:col-span-2">
+              <Input
+                label="Institution Name *"
+                name="institution"
+                value={form.institution}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                label="Password *"
+                name="password"
+                type="password"
+                value={form.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Upload Identification Proof *
+              </label>
+              <p className="text-xs text-slate-500 mb-2">
+                Upload any valid ID proof (Aadhaar, PAN, Passport, Driving License, etc.)
+              </p>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:border-blue-500 transition-colors">
+                <div className="space-y-1 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-slate-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex text-sm text-slate-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        accept="application/pdf,image/*,.doc,.docx"
+                        className="sr-only"
+                        onChange={handleFile}
+                        required
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-slate-500">PDF, JPG, PNG, DOC up to 10MB</p>
+                </div>
+              </div>
+              {form.pdf && (
+                <div className="mt-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">
+                        {form.pdf.type.includes('pdf') ? '📄' :
+                          form.pdf.type.includes('image') ? '🖼️' : '📎'}
+                      </span>
+                      <div>
+                        <p className="text-sm font-medium text-green-900">{form.pdf.name}</p>
+                        <p className="text-xs text-green-600">
+                          {(form.pdf.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = URL.createObjectURL(form.pdf);
+                          window.open(url, '_blank');
+                        }}
+                        className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        👁️ View
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setForm({ ...form, pdf: null });
+                          const fileInput = document.querySelector('input[type="file"]');
+                          if (fileInput) fileInput.value = "";
+                        }}
+                        className="px-3 py-1.5 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 transition-colors"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            className="w-full mt-6"
+            size="lg"
+            isLoading={loading}
+          >
+            {loading ? "Registering..." : "Register as SPOC"}
+          </Button>
+        </form>
+      </motion.div>
     </div>
   );
 }

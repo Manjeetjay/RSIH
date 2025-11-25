@@ -6,11 +6,11 @@ import path from "path";
 
 // ✅ SPOC Registration (with PDF upload)
 export const registerSpoc = async (req, res) => {
+  const client = await pool.connect();
+  const file = req.file;
+
   try {
     const { name, age, email, phone, institution, password } = req.body;
-    const file = req.file;
-
-    console.log("Received registration data:", { name, email, institution, hasFile: !!file });
 
     if (!file) {
       return res.status(400).json({ message: "Nomination PDF is required." });
@@ -18,31 +18,34 @@ export const registerSpoc = async (req, res) => {
 
     // Validate required fields
     if (!name || !email || !phone || !institution || !password) {
+      if (file) fs.unlinkSync(file.path); // Cleanup
       return res.status(400).json({ message: "All fields are required." });
     }
 
+    await client.query('BEGIN');
+
     // Check if user with email already exists
-    const userCheck = await pool.query(
+    const userCheck = await client.query(
       "SELECT id FROM users WHERE email=$1",
       [email]
     );
     if (userCheck.rows.length > 0) {
-      return res.status(400).json({ message: "A user with this email already exists." });
+      throw new Error("A user with this email already exists.");
     }
 
     // Check if SPOC already exists for institution
-    const collegeCheck = await pool.query(
+    const collegeCheck = await client.query(
       "SELECT * FROM colleges WHERE LOWER(name)=LOWER($1)",
       [institution]
     );
     if (collegeCheck.rows.length > 0) {
-      return res.status(400).json({ message: "A SPOC already exists for this institution." });
+      throw new Error("A SPOC already exists for this institution.");
     }
 
     const hashed = await bcrypt.hash(password, 10);
 
     // Create user with phone included
-    const userRes = await pool.query(
+    const userRes = await client.query(
       `INSERT INTO users (name, email, password, role, verified, phone)
        VALUES ($1, $2, $3, 'SPOC', false, $4) RETURNING id`,
       [name, email, hashed, phone]
@@ -51,7 +54,7 @@ export const registerSpoc = async (req, res) => {
     const spocId = userRes.rows[0].id;
 
     // Create college
-    await pool.query(
+    await client.query(
       `INSERT INTO colleges (name, spoc_id) VALUES ($1, $2)`,
       [institution, spocId]
     );
@@ -64,26 +67,39 @@ export const registerSpoc = async (req, res) => {
 
     // Sanitize filename for storage
     const sanitizedName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    
+
     // Move PDF to permanent storage
     const newPath = path.join(uploadDir, `${spocId}_${sanitizedName}`);
-    
+
     // Check if source file exists
     if (!fs.existsSync(file.path)) {
       throw new Error("Uploaded file not found");
     }
-    
+
     fs.renameSync(file.path, newPath);
+
+    await client.query('COMMIT');
 
     res.status(201).json({
       message: "SPOC registered successfully. Awaiting admin verification.",
     });
   } catch (err) {
+    await client.query('ROLLBACK');
+    // Cleanup uploaded file if it exists in temp
+    if (file && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
     console.error("SPOC Registration Error:", err);
-    res.status(500).json({ 
-      error: err.message,
-      message: "Failed to register SPOC. Please try again." 
-    });
+
+    // Send specific error message if it's one of our known errors
+    const message = err.message === "A user with this email already exists." ||
+      err.message === "A SPOC already exists for this institution."
+      ? err.message
+      : "Failed to register SPOC. Please try again.";
+
+    res.status(400).json({ message });
+  } finally {
+    client.release();
   }
 };
 

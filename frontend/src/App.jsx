@@ -4,6 +4,10 @@ import About from "./pages/About";
 import Guidelines from "./pages/Guidelines";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
+import ProblemStatements from "./pages/dashboard/admin/ProblemStatements";
+import SPOCManagement from "./pages/dashboard/admin/SPOCManagement";
+import Registrations from "./pages/dashboard/admin/Registrations";
+import Submissions from "./pages/dashboard/admin/Submissions";
 import SpocDashboard from "./pages/dashboard/SpocDashboard";
 import TeamDashboard from "./pages/dashboard/TeamDashboard";
 import ProtectedRoute from "./components/ProtectedRoutes";
@@ -32,6 +36,22 @@ function App() {
                 <AdminDashboard />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/dashboard/admin/problems"
+            element={<ProtectedRoute role="ADMIN"><ProblemStatements /></ProtectedRoute>}
+          />
+          <Route
+            path="/dashboard/admin/spocs"
+            element={<ProtectedRoute role="ADMIN"><SPOCManagement /></ProtectedRoute>}
+          />
+          <Route
+            path="/dashboard/admin/registrations"
+            element={<ProtectedRoute role="ADMIN"><Registrations /></ProtectedRoute>}
+          />
+          <Route
+            path="/dashboard/admin/submissions"
+            element={<ProtectedRoute role="ADMIN"><Submissions /></ProtectedRoute>}
           />
           <Route
             path="/dashboard/spoc"

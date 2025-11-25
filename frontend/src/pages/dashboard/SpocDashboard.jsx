@@ -2,19 +2,14 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import Button from "../../components/ui/Button";
 
 export default function SpocDashboard() {
+  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showTeamForm, setShowTeamForm] = useState(false);
-  
-  const [teamForm, setTeamForm] = useState({
-    teamName: "",
-    leaderName: "",
-    leaderEmail: "",
-    leaderPassword: ""
-  });
 
   useEffect(() => {
     fetchData();
@@ -31,153 +26,71 @@ export default function SpocDashboard() {
       setCollege(collegeRes.data);
     } catch (err) {
       toast.error("Failed to fetch data");
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegisterTeam = async (e) => {
-    e.preventDefault();
-    try {
-      if (!college) {
-        toast.error("College information not found");
-        return;
-      }
-      
-      await api.post("/api/spoc/team", {
-        ...teamForm,
-        collegeId: college.id
-      });
-      toast.success("Team registered successfully!");
-      setShowTeamForm(false);
-      setTeamForm({
-        teamName: "",
-        leaderName: "",
-        leaderEmail: "",
-        leaderPassword: ""
-      });
-      fetchData();
-    } catch (err) {
-      toast.error(err.response?.data?.error || "Failed to register team");
-    }
-  };
+  if (loading) return <div className="p-12 text-center text-slate-500">Loading dashboard...</div>;
 
-  const checkSubmission = async (teamId) => {
-    try {
-      const res = await api.get(`/api/spoc/team/${teamId}/submission`);
-      if (res.data.submitted) {
-        toast.info(`Team has submitted: ${res.data.submission.title}`);
-      } else {
-        toast.info("Team has not submitted yet");
-      }
-    } catch (err) {
-      toast.error("Failed to check submission");
-    }
-  };
+  const teamLimit = 15;
+  const hasReachedLimit = teams.length >= teamLimit;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="page-container">
       <div className="max-w-7xl mx-auto">
-        <motion.h1
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-4xl font-bold text-gray-800 mb-2"
+          className="mb-8"
         >
-          SPOC Dashboard
-        </motion.h1>
-        
-        {college && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-gray-600 mb-6"
+          <h1 className="text-4xl font-bold text-slate-800 mb-2">SPOC Dashboard</h1>
+          <p className="text-slate-600">Manage teams for {college?.name || "your institution"}</p>
+        </motion.div>
+
+        {/* Team Limit Notice */}
+        {hasReachedLimit && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8 p-4 bg-sky-50 border-l-4 border-sky-500 rounded-lg"
           >
-            Institution: <span className="font-semibold text-green-600">{college.name}</span>
-          </motion.p>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="font-bold text-sky-900 mb-1">Team Registration Limit Reached</h3>
+                <p className="text-sky-800 text-sm">
+                  You have registered {teams.length} teams. Each SPOC can register a maximum of {teamLimit} teams.
+                </p>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-700">Registered Teams</h2>
-          <button
-            onClick={() => setShowTeamForm(!showTeamForm)}
-            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 font-semibold"
+          <h2 className="text-2xl font-semibold text-slate-800">
+            Registered Teams ({teams.length}/{teamLimit})
+          </h2>
+          <Button
+            onClick={() => navigate("/dashboard/spoc/teams/register")}
+            disabled={hasReachedLimit}
+            className={hasReachedLimit ? "opacity-50 cursor-not-allowed" : ""}
           >
-            {showTeamForm ? "Cancel" : "+ Register New Team"}
-          </button>
+            {hasReachedLimit ? `✓ Limit Reached (${teamLimit}/${teamLimit})` : "+ Register New Team"}
+          </Button>
         </div>
 
-        {showTeamForm && (
-          <motion.form
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            onSubmit={handleRegisterTeam}
-            className="bg-white p-6 rounded-lg shadow-md mb-6"
-          >
-            <h3 className="text-xl font-semibold mb-4">Register New Team</h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-gray-700 font-medium mb-2">Team Name *</label>
-                <input
-                  type="text"
-                  value={teamForm.teamName}
-                  onChange={(e) => setTeamForm({ ...teamForm, teamName: e.target.value })}
-                  className="input"
-                  placeholder="Enter team name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Team Leader Name *</label>
-                <input
-                  type="text"
-                  value={teamForm.leaderName}
-                  onChange={(e) => setTeamForm({ ...teamForm, leaderName: e.target.value })}
-                  className="input"
-                  placeholder="Enter leader name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 font-medium mb-2">Team Leader Email *</label>
-                <input
-                  type="email"
-                  value={teamForm.leaderEmail}
-                  onChange={(e) => setTeamForm({ ...teamForm, leaderEmail: e.target.value })}
-                  className="input"
-                  placeholder="Enter leader email"
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-gray-700 font-medium mb-2">Team Leader Password *</label>
-                <input
-                  type="password"
-                  value={teamForm.leaderPassword}
-                  onChange={(e) => setTeamForm({ ...teamForm, leaderPassword: e.target.value })}
-                  className="input"
-                  placeholder="Set password for team leader"
-                  required
-                />
-              </div>
-              <div className="md:col-span-2">
-                <button
-                  type="submit"
-                  className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
-                >
-                  Register Team
-                </button>
-              </div>
+        {teams.length === 0 ? (
+          <div className="card p-12 text-center bg-white shadow-lg rounded-xl border border-slate-100">
+            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+              👥
             </div>
-          </motion.form>
-        )}
-
-        {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading teams...</div>
-        ) : teams.length === 0 ? (
-          <div className="bg-white p-12 rounded-lg shadow-md text-center">
-            <p className="text-gray-600 text-lg mb-4">No teams registered yet.</p>
-            <p className="text-gray-500">Click "Register New Team" to add your first team.</p>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">No Teams Yet</h3>
+            <p className="text-slate-500 mb-6">Start by registering your first team for the hackathon.</p>
+            <Button onClick={() => navigate("/dashboard/spoc/teams/register")}>
+              Register Team
+            </Button>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -187,23 +100,38 @@ export default function SpocDashboard() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500"
+                className="card p-6 bg-white shadow-lg rounded-xl border border-slate-100 hover:shadow-xl transition-shadow cursor-pointer group"
+                onClick={() => navigate(`/dashboard/spoc/teams/${team.id}`)}
               >
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">{team.name}</h3>
-                <div className="space-y-2 mb-4">
-                  <p className="text-gray-600 text-sm">
-                    <strong>Leader:</strong> {team.leader_name}
-                  </p>
-                  <p className="text-gray-600 text-sm">
-                    <strong>Email:</strong> {team.leader_email}
-                  </p>
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
+                    {team.name}
+                  </h3>
+                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                    Active
+                  </span>
                 </div>
-                <button
-                  onClick={() => checkSubmission(team.id)}
-                  className="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium"
-                >
-                  Check Submission Status
-                </button>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-3 text-slate-600">
+                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm">👤</span>
+                    <div>
+                      <p className="text-xs text-slate-400 uppercase tracking-wider">Leader</p>
+                      <p className="font-medium">{team.leader_name}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-600">
+                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm">📧</span>
+                    <div>
+                      <p className="text-xs text-slate-400 uppercase tracking-wider">Email</p>
+                      <p className="font-medium text-sm">{team.leader_email}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button variant="outline" className="w-full justify-center">
+                  View Details
+                </Button>
               </motion.div>
             ))}
           </div>
@@ -214,22 +142,19 @@ export default function SpocDashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-8 bg-white p-6 rounded-lg shadow-md"
+            className="mt-12 grid md:grid-cols-3 gap-6"
           >
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Statistics</h3>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <p className="text-3xl font-bold text-green-600">{teams.length}</p>
-                <p className="text-gray-600 text-sm mt-1">Total Teams</p>
-              </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-3xl font-bold text-blue-600">{college?.name || "N/A"}</p>
-                <p className="text-gray-600 text-sm mt-1">Institution</p>
-              </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <p className="text-3xl font-bold text-purple-600">Active</p>
-                <p className="text-gray-600 text-sm mt-1">Status</p>
-              </div>
+            <div className="card p-6 bg-blue-600 text-white rounded-xl shadow-lg">
+              <p className="text-4xl font-bold mb-1">{teams.length}</p>
+              <p className="text-blue-100 font-medium">Total Teams Registered</p>
+            </div>
+            <div className="card p-6 bg-white border border-slate-100 rounded-xl shadow-md">
+              <p className="text-4xl font-bold text-slate-800 mb-1">{college?.name ? 1 : 0}</p>
+              <p className="text-slate-500 font-medium">Institutions Managed</p>
+            </div>
+            <div className="card p-6 bg-white border border-slate-100 rounded-xl shadow-md">
+              <p className="text-4xl font-bold text-green-600 mb-1">100%</p>
+              <p className="text-slate-500 font-medium">Active Status</p>
             </div>
           </motion.div>
         )}

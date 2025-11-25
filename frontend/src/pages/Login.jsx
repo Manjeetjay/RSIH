@@ -3,6 +3,9 @@ import api from "../services/api";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import { motion } from "framer-motion";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import { Link } from "react-router-dom";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,7 +20,6 @@ export default function Login() {
       const res = await api.post("/api/auth/login", { email, password });
       login(res.data);
       toast.success("Logged in successfully!");
-      // Navigation handled by AuthContext based on role
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {
@@ -26,59 +28,59 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      <motion.form
-        onSubmit={handleSubmit}
+    <div className="flex justify-center items-center min-h-[calc(100vh-4rem)] bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-10 rounded-xl shadow-2xl w-full max-w-md"
+        className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-slate-200"
       >
-        <h2 className="text-4xl font-bold text-center mb-2 text-gray-800">
-          Welcome Back
-        </h2>
-        <p className="text-center text-gray-600 mb-8">Sign in to your account</p>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Email</label>
-            <input
+        <div className="text-center">
+          <h2 className="mt-6 text-3xl font-extrabold text-slate-900">
+            Welcome Back
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Sign in to access your dashboard
+          </p>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <Input
+              label="Email Address"
               type="email"
-              placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input"
               required
             />
-          </div>
-          
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">Password</label>
-            <input
+
+            <Input
+              label="Password"
               type="password"
-              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input"
               required
             />
           </div>
-          
-          <button
+
+          <Button
             type="submit"
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="primary"
+            className="w-full"
+            isLoading={loading}
           >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+            {loading ? "Signing in..." : "Sign in"}
+          </Button>
+        </form>
+
+        <div className="text-center mt-4">
+          <p className="text-sm text-slate-600">
+            Don't have an account?{" "}
+            <Link to="/spoc-registration" className="font-medium text-blue-600 hover:text-blue-500">
+              Register as SPOC
+            </Link>
+          </p>
         </div>
-        
-        <p className="text-center text-gray-600 mt-6 text-sm">
-          Don't have an account?{" "}
-          <a href="/spoc-registration" className="text-green-600 hover:text-green-700 font-semibold">
-            Register as SPOC
-          </a>
-        </p>
-      </motion.form>
+      </motion.div>
     </div>
   );
 }
