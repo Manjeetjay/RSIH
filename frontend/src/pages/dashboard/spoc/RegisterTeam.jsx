@@ -1,61 +1,45 @@
-import React, { useState, useEffect } from "react";
-import api from "../../../services/api";
-import { toast } from "react-toastify";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../../services/api";
 import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
-import { motion } from "framer-motion";
+import { FaUsers, FaUser, FaEnvelope, FaPhone, FaGraduationCap, FaCodeBranch, FaStream } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function RegisterTeam() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [checkingLimit, setCheckingLimit] = useState(true);
-    const [college, setCollege] = useState(null);
-    const [form, setForm] = useState({
-        teamName: "",
-        leaderName: "",
-        leaderEmail: "",
-        leaderPassword: ""
-    });
+    const [teamName, setTeamName] = useState("");
 
-    useEffect(() => {
-        const checkAndFetch = async () => {
-            try {
-                const [collegeRes, teamsRes] = await Promise.all([
-                    api.get("/api/spoc/college"),
-                    api.get("/api/spoc/teams")
-                ]);
+    // Initialize state for 4 members
+    const [members, setMembers] = useState([
+        { name: "", email: "", phone: "", branch: "", stream: "", year: "" }, // Member 1 (Leader)
+        { name: "", email: "", phone: "", branch: "", stream: "", year: "" },
+        { name: "", email: "", phone: "", branch: "", stream: "", year: "" },
+        { name: "", email: "", phone: "", branch: "", stream: "", year: "" }
+    ]);
 
-                setCollege(collegeRes.data);
+    const handleMemberChange = (index, field, value) => {
+        const newMembers = [...members];
+        newMembers[index][field] = value;
+        setMembers(newMembers);
+    };
 
-                // Check if team limit reached
-                if (teamsRes.data && teamsRes.data.length >= 15) {
-                    toast.error("Team registration limit reached. You can only register 15 teams.");
-                    navigate("/dashboard/spoc");
-                    return;
-                }
-            } catch (err) {
-                toast.error("Failed to load data");
-            } finally {
-                setCheckingLimit(false);
-            }
-        };
-        checkAndFetch();
-    }, [navigate]);
-
-    const submit = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!college) {
-            toast.error("College information missing");
-            return;
-        }
         setLoading(true);
+
         try {
-            await api.post("/api/spoc/team", {
-                ...form,
-                collegeId: college.id
-            });
-            toast.success("Team registered successfully");
+            const payload = {
+                name: teamName,
+                // Flatten member data for backend
+                member1_name: members[0].name, member1_email: members[0].email, member1_phone: members[0].phone, member1_branch: members[0].branch, member1_stream: members[0].stream, member1_year: members[0].year,
+                member2_name: members[1].name, member2_email: members[1].email, member2_phone: members[1].phone, member2_branch: members[1].branch, member2_stream: members[1].stream, member2_year: members[1].year,
+                member3_name: members[2].name, member3_email: members[2].email, member3_phone: members[2].phone, member3_branch: members[2].branch, member3_stream: members[2].stream, member3_year: members[2].year,
+                member4_name: members[3].name, member4_email: members[3].email, member4_phone: members[3].phone, member4_branch: members[3].branch, member4_stream: members[3].stream, member4_year: members[3].year,
+            };
+
+            await api.post("/api/spoc/team", payload);
+            toast.success("Team registered successfully!");
             navigate("/dashboard/spoc");
         } catch (err) {
             toast.error(err.response?.data?.error || "Failed to register team");
@@ -64,74 +48,149 @@ export default function RegisterTeam() {
         }
     };
 
-    if (checkingLimit) {
-        return <div className="p-12 text-center text-slate-500">Checking team limit...</div>;
-    }
-
     return (
-        <div className="page-container max-w-3xl mx-auto">
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6"
-            >
-                <h2 className="text-3xl font-bold text-slate-800">Register New Team</h2>
-                <p className="text-slate-500 mt-1">Add a new team for {college?.name || "your institution"}.</p>
-            </motion.div>
+        <div className="page-container">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-slate-800">Register New Team</h1>
+                <p className="text-slate-600">Add a team of 4 members including the leader</p>
+            </div>
 
-            <motion.form
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                onSubmit={submit}
-                className="card p-8 bg-white shadow-lg rounded-xl border border-slate-100"
-            >
-                <div className="space-y-6">
-                    <Input
-                        label="Team Name"
-                        value={form.teamName}
-                        onChange={(e) => setForm({ ...form, teamName: e.target.value })}
-                        required
-                    />
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <Input
-                            label="Leader Name"
-                            value={form.leaderName}
-                            onChange={(e) => setForm({ ...form, leaderName: e.target.value })}
-                            required
-                        />
-                        <Input
-                            label="Leader Email"
-                            type="email"
-                            value={form.leaderEmail}
-                            onChange={(e) => setForm({ ...form, leaderEmail: e.target.value })}
-                            required
-                        />
-                    </div>
-
-                    <Input
-                        label="Leader Password"
-                        type="password"
-                        value={form.leaderPassword}
-                        onChange={(e) => setForm({ ...form, leaderPassword: e.target.value })}
-                        required
-                    />
-
-                    <div className="flex justify-end gap-4 pt-4">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => navigate("/dashboard/spoc")}
-                        >
-                            Cancel
-                        </Button>
-                        <Button type="submit" isLoading={loading}>
-                            Register Team
-                        </Button>
+            <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl">
+                {/* Team Details */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+                        <FaUsers className="text-blue-600" /> Team Information
+                    </h2>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Team Name</label>
+                        <div className="relative">
+                            <FaUsers className="absolute left-3 top-3 text-slate-400" />
+                            <input
+                                type="text"
+                                required
+                                className="pl-10 input"
+                                value={teamName}
+                                onChange={(e) => setTeamName(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
-            </motion.form>
+
+                {/* Members */}
+                <div className="grid md:grid-cols-2 gap-6">
+                    {members.map((member, index) => (
+                        <div key={index} className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative">
+                            <div className="absolute top-4 right-4 text-slate-200 text-6xl font-bold opacity-20 pointer-events-none">
+                                {index + 1}
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                                {index === 0 ? "Team Leader (Member 1)" : `Member ${index + 1}`}
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Full Name</label>
+                                    <div className="relative">
+                                        <FaUser className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                        <input
+                                            type="text"
+                                            required
+                                            className="pl-8 input py-1.5 text-sm"
+                                            value={member.name}
+                                            onChange={(e) => handleMemberChange(index, "name", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Email</label>
+                                    <div className="relative">
+                                        <FaEnvelope className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                        <input
+                                            type="email"
+                                            required
+                                            className="pl-8 input py-1.5 text-sm"
+                                            value={member.email}
+                                            onChange={(e) => handleMemberChange(index, "email", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Phone</label>
+                                    <div className="relative">
+                                        <FaPhone className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                        <input
+                                            type="tel"
+                                            required
+                                            className="pl-8 input py-1.5 text-sm"
+                                            value={member.phone}
+                                            onChange={(e) => handleMemberChange(index, "phone", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Branch</label>
+                                        <div className="relative">
+                                            <FaCodeBranch className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                            <input
+                                                type="text"
+                                                required
+                                                className="pl-8 input py-1.5 text-sm"
+                                                value={member.branch}
+                                                onChange={(e) => handleMemberChange(index, "branch", e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Year</label>
+                                        <div className="relative">
+                                            <FaGraduationCap className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                            <select
+                                                required
+                                                className="pl-8 input py-1.5 text-sm"
+                                                value={member.year}
+                                                onChange={(e) => handleMemberChange(index, "year", e.target.value)}
+                                            >
+                                                <option value="">Select</option>
+                                                <option value="1">1st</option>
+                                                <option value="2">2nd</option>
+                                                <option value="3">3rd</option>
+                                                <option value="4">4th</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-medium text-slate-500 uppercase mb-1">Stream</label>
+                                    <div className="relative">
+                                        <FaStream className="absolute left-3 top-2.5 text-slate-400 text-xs" />
+                                        <input
+                                            type="text"
+                                            required
+                                            className="pl-8 input py-1.5 text-sm"
+                                            value={member.stream}
+                                            onChange={(e) => handleMemberChange(index, "stream", e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="flex justify-end gap-4 pt-4">
+                    <Button type="button" variant="ghost" onClick={() => navigate("/dashboard/spoc")}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" size="lg" disabled={loading}>
+                        {loading ? "Registering Team..." : "Register Team"}
+                    </Button>
+                </div>
+            </form>
         </div>
     );
 }

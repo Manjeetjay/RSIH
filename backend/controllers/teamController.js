@@ -1,108 +1,78 @@
 import { pool } from "../config/db.js";
 
-// ✅ Get all open Problem Statements
+export const getMyTeam = async (req, res) => {
+  const userId = req.user.id;
+  try {
+    // Find team where user is member1 (leader)
+    const userRes = await pool.query("SELECT email FROM users WHERE id = $1", [userId]);
+    const userEmail = userRes.rows[0].email;
+
+    const team = await pool.query("SELECT * FROM teams WHERE member1_email = $1", [userEmail]);
+    if (team.rows.length === 0) return res.status(404).json({ message: "Team not found" });
+    res.json(team.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getAllPS = async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM problem_statements ORDER BY id DESC");
-    res.json(result.rows);
+    const ps = await pool.query("SELECT * FROM problem_statements");
+    res.json(ps.rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// ✅ Get team ID from leader ID
-const getTeamIdFromLeader = async (leaderId) => {
-  const result = await pool.query("SELECT id FROM teams WHERE leader_id=$1", [leaderId]);
-  if (result.rows.length === 0) return null;
-  return result.rows[0].id;
-};
-
-// ✅ Submit Idea for a PS (ONE SUBMISSION PER TEAM, MAX 50 PER PS)
 export const submitIdea = async (req, res) => {
-  const { teamId, psId, title, abstract } = req.body;
-  const leaderId = req.user.id;
+  const { ps_id, title, description, abstract, yt_link } = req.body;
+  const ppt_url = req.file ? `/uploads/ppts/${req.file.filename}` : null;
+
+  const userId = req.user.id;
 
   try {
-    // If teamId not provided, get it from leader_id
-    let finalTeamId = teamId;
-    if (!finalTeamId) {
-      finalTeamId = await getTeamIdFromLeader(leaderId);
-      if (!finalTeamId) {
-        return res.status(404).json({ message: "Team not found for this leader." });
-      }
+    // Find team_id based on user email
+    const userRes = await pool.query("SELECT email FROM users WHERE id = $1", [userId]);
+    const userEmail = userRes.rows[0].email;
+
+    const teamRes = await pool.query("SELECT id FROM teams WHERE member1_email = $1", [userEmail]);
+
+    if (teamRes.rows.length === 0) {
+      return res.status(404).json({ error: "Team not found for this user" });
+    }
+    const team_id = teamRes.rows[0].id;
+
+    // Check if team already submitted?
+    const existingSub = await pool.query("SELECT * FROM submissions WHERE team_id = $1", [team_id]);
+    if (existingSub.rows.length > 0) {
+      return res.status(400).json({ error: "Team has already submitted an idea." });
     }
 
-    // Verify the team belongs to this leader
-    const teamCheck = await pool.query("SELECT id FROM teams WHERE id=$1 AND leader_id=$2", [finalTeamId, leaderId]);
-    if (teamCheck.rows.length === 0) {
-      return res.status(403).json({ message: "Access denied. Team does not belong to you." });
-    }
-
-    // ✅ CHECK: Team can only submit ONE idea total (not per PS)
-    const existing = await pool.query("SELECT * FROM submissions WHERE team_id=$1", [finalTeamId]);
-    if (existing.rows.length > 0) {
-      return res.status(400).json({
-        error: "Your team has already submitted an idea. Each team can only submit one idea total."
-      });
-    }
-
-    // ✅ CHECK: Problem statement can only have 50 submissions max
-    const psSubmissionCount = await pool.query(
-      "SELECT COUNT(*) FROM submissions WHERE ps_id=$1",
-      [psId]
+    const newSubmission = await pool.query(
+      `INSERT INTO submissions (team_id, ps_id, title, description, abstract, ppt_url, yt_link) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [team_id, ps_id, title, description, abstract, ppt_url, yt_link]
     );
-    if (parseInt(psSubmissionCount.rows[0].count) >= 50) {
-      return res.status(400).json({
-        error: "This problem statement has reached its submission limit (50 submissions max)."
-      });
-    }
-
-    const result = await pool.query(
-      "INSERT INTO submissions (team_id, ps_id, title, abstract, status) VALUES ($1, $2, $3, $4, 'SUBMITTED') RETURNING *",
-      [finalTeamId, psId, title, abstract]
-    );
-
-    res.status(201).json({ message: "Idea submitted successfully.", submission: result.rows[0] });
+    res.status(201).json(newSubmission.rows[0]);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// ✅ Get all submissions for a team (by leader)
 export const getMySubmissions = async (req, res) => {
-  const leaderId = req.user.id;
+  const userId = req.user.id;
   try {
-    const teamId = await getTeamIdFromLeader(leaderId);
-    if (!teamId) {
-      return res.json([]);
-    }
-    const result = await pool.query(`
-      SELECT s.*, p.title AS ps_title, p.description AS ps_description
-      FROM submissions s
-      JOIN problem_statements p ON s.ps_id = p.id
-      WHERE s.team_id=$1
-      ORDER BY s.id DESC
-    `, [teamId]);
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
+    const userRes = await pool.query("SELECT email FROM users WHERE id = $1", [userId]);
+    const userEmail = userRes.rows[0].email;
 
-// ✅ Get my team info
-export const getMyTeam = async (req, res) => {
-  const leaderId = req.user.id;
-  try {
-    const result = await pool.query(`
-      SELECT t.*, c.name AS college_name
-      FROM teams t
-      JOIN colleges c ON t.college_id = c.id
-      WHERE t.leader_id=$1
-    `, [leaderId]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "Team not found" });
-    }
-    res.json(result.rows[0]);
+    const teamRes = await pool.query("SELECT id FROM teams WHERE member1_email = $1", [userEmail]);
+    if (teamRes.rows.length === 0) return res.json(null); // No team, no submission
+
+    const team_id = teamRes.rows[0].id;
+    const sub = await pool.query("SELECT * FROM submissions WHERE team_id = $1", [team_id]);
+
+    if (sub.rows.length === 0) return res.json(null);
+    res.json(sub.rows[0]); // Return single submission object
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

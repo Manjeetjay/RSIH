@@ -25,10 +25,15 @@ pool.connect()
 app.get("/api/public/ps", getAllPS); // Public route for problem statements
 
 // Routes
+import settingsRoutes from "./routes/settingsRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js"; // Added for app.use("/api/public", publicRoutes)
+
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/spoc", spocRoutes);
 app.use("/api/team", teamRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/settings", settingsRoutes);
 
 app.get("/", (req, res) => res.send("SIH Backend Running"));
 

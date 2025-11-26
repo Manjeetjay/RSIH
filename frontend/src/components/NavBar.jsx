@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import Button from "./ui/Button";
 import { motion } from "framer-motion";
+import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const { user, logout } = useContext(AuthContext);
@@ -27,13 +28,13 @@ export default function Navbar() {
   );
 
   return (
-    <nav className="bg-slate-900 border-b border-slate-800 sticky top-0 z-50">
+    <nav className="bg-slate-900 border-b border-slate-900 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-400 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
-              S
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20">
+              <img src={logo} alt="logo" className="object-cover w-full h-full" />
             </div>
             <span className="font-bold text-xl text-white tracking-tight">
               SIH <span className="text-blue-400">Portal</span>
@@ -53,7 +54,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             {!user ? (
               <Link to="/login">
-                <Button variant="secondary" size="sm">Login</Button>
+                <Button variant="secondary" size="sm" className="bg-blue-600 hover:bg-blue-700 rounded-2xl px-6">Login</Button>
               </Link>
             ) : (
               <div className="flex items-center gap-4">

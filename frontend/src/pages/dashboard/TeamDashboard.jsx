@@ -1,173 +1,180 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import api from "../../services/api";
-import { toast } from "react-toastify";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import DashboardLayout from "../../components/layouts/DashboardLayout";
+import Table, { TableRow, TableCell } from "../../components/ui/Table";
 import Button from "../../components/ui/Button";
+import { FaPlus, FaEye, FaDownload, FaYoutube } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function TeamDashboard() {
-  const navigate = useNavigate();
-  const [ps, setPs] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
+  const [activeTab, setActiveTab] = useState("problems"); // 'problems' or 'submission'
+  const [problems, setProblems] = useState([]);
+  const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [teamId, setTeamId] = useState(null);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
     try {
-      const [psRes, subsRes, teamRes] = await Promise.all([
+      const [psRes, subRes] = await Promise.all([
         api.get("/api/team/ps"),
-        api.get("/api/team/submissions").catch(() => ({ data: [] })),
-        api.get("/api/team/team").catch(() => ({ data: null }))
+        api.get("/api/team/submissions") // This returns an array, but we expect single submission
       ]);
-      setPs(psRes.data);
-      setSubmissions(subsRes.data || []);
-      if (teamRes.data) setTeamId(teamRes.data.id);
+      setProblems(psRes.data);
+      // subRes.data is an array of submissions. Team can have only 1.
+      if (subRes.data && subRes.data.length > 0) {
+        setSubmission(subRes.data[0]);
+      }
     } catch (err) {
-      toast.error("Failed to fetch data");
+      console.error(err);
+      // toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
   };
 
-  const hasSubmissionForPS = (psId) => {
-    return submissions.some(sub => sub.ps_id === psId);
-  };
-
-  if (loading) return <div className="p-12 text-center text-slate-500">Loading dashboard...</div>;
-
-  const hasSubmission = submissions.length > 0;
-
   return (
-    <div className="page-container">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">Team Leader Dashboard</h1>
-          <p className="text-slate-600">Manage your team's ideas and submissions.</p>
-        </motion.div>
-
-        {/* Submission Limit Notice */}
-        {hasSubmission && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8 p-4 bg-sky-50 border-l-4 border-sky-500 rounded-lg"
-          >
-            <div className="flex items-start gap-3">
-              <h3 className="font-bold text-sky-900 mb-1">Submission Limit Reached</h3>
-              <p className="text-sky-800 text-sm">
-                Your team has already submitted an idea. Each team can only submit one idea for the hackathon.
-              </p>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Submissions Section */}
-        {submissions.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-12"
-          >
-            <h2 className="text-2xl font-semibold text-slate-800 mb-6">My Submission</h2>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {submissions.map((sub, index) => (
-                <motion.div
-                  key={sub.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="card p-6 bg-white shadow-lg rounded-xl border border-slate-100 hover:shadow-xl transition-shadow cursor-pointer group"
-                  onClick={() => navigate(`/dashboard/team/submission/${sub.id}`)}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-slate-400 font-mono text-sm">PS #{sub.ps_id}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${sub.status === "SUBMITTED" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
-                      }`}>
-                      {sub.status}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-blue-700 transition-colors line-clamp-2">
-                    {sub.title}
-                  </h3>
-                  <p className="text-slate-600 text-sm line-clamp-3 mb-4">
-                    {sub.abstract}
-                  </p>
-                  <Button variant="outline" className="w-full justify-center">
-                    View Details
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* Available PS Section */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-slate-800">Available Problem Statements</h2>
-          <Button
-            onClick={() => navigate("/dashboard/team/submit")}
-            disabled={hasSubmission}
-            className={hasSubmission ? "opacity-50 cursor-not-allowed" : ""}
-          >
-            {hasSubmission ? "✓ Already Submitted" : "+ Submit New Idea"}
-          </Button>
+    <div className="min-h-screen bg-slate-50 py-10 px-6">
+      <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-slate-800">Team Dashboard</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setActiveTab("problems")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "problems"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              Available Problems
+            </button>
+            <button
+              onClick={() => setActiveTab("submission")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === "submission"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-600 hover:bg-slate-50"
+                }`}
+            >
+              My Submission
+            </button>
+          </div>
         </div>
 
-        <div className="card overflow-hidden bg-white shadow-lg rounded-xl border border-slate-100">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+      {activeTab === "problems" ? (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="p-6 border-b border-slate-200">
+            <h2 className="text-lg font-semibold text-slate-800">Problem Statements</h2>
+          </div>
+          <Table headers={["ID", "Title", "Category", "Type", "Action"]}>
+            {problems.map((p) => (
+              <TableRow key={p.id}>
+                <TableCell>#{p.id}</TableCell>
+                <TableCell className="font-medium text-slate-900">{p.title}</TableCell>
+                <TableCell>{p.category}</TableCell>
+                <TableCell>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${p.type === "Software" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-orange-700"
+                    }`}>
+                    {p.type}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  {submission ? (
+                    <span className="text-xs text-slate-500">Already Submitted</span>
+                  ) : (
+                    <Link to={`/dashboard/team/submit?psId=${p.id}`}>
+                      <Button size="sm" variant="outline">
+                        Submit Idea
+                      </Button>
+                    </Link>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {problems.length === 0 && (
               <tr>
-                <th className="text-left p-4 font-semibold text-slate-600">PS ID</th>
-                <th className="text-left p-4 font-semibold text-slate-600">Title</th>
-                <th className="text-left p-4 font-semibold text-slate-600">Category</th>
-                <th className="text-left p-4 font-semibold text-slate-600">Type</th>
-                <th className="text-left p-4 font-semibold text-slate-600">Status</th>
+                <td colSpan="5" className="p-8 text-center text-slate-500">
+                  No problem statements available.
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {ps.map((p) => {
-                const hasSubmittedForPS = hasSubmissionForPS(p.id);
-                return (
-                  <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="p-4 text-slate-600 font-mono text-sm">#{p.id}</td>
-                    <td className="p-4 font-medium text-slate-900">{p.title}</td>
-                    <td className="p-4 text-slate-600">
-                      <span className="px-2 py-1 bg-slate-100 rounded text-xs font-medium">
-                        {p.category}
-                      </span>
-                    </td>
-                    <td className="p-4 text-slate-600">{p.type}</td>
-                    <td className="p-4">
-                      {hasSubmittedForPS ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
-                          Submitted
-                        </span>
-                      ) : hasSubmission ? (
-                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
-                          Limit Reached
-                        </span>
-                      ) : (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-medium">
-                          Available
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            )}
+          </Table>
         </div>
+      ) : (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+          {submission ? (
+            <div className="space-y-6">
+              <div className="border-b border-slate-200 pb-4">
+                <h2 className="text-xl font-bold text-slate-900">{submission.title}</h2>
+                <p className="text-slate-500 text-sm mt-1">
+                  Submitted for PS #{submission.ps_id}: {submission.ps_title}
+                </p>
+                <div className="mt-4 flex gap-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${submission.status === 'SELECTED' ? 'bg-green-100 text-green-700' :
+                      submission.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                    }`}>
+                    Status: {submission.status || 'Pending Review'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Abstract</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                    {submission.abstract}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-slate-900 mb-2">Description</h3>
+                  <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">
+                    {submission.description}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-4 border-t border-slate-200">
+                {submission.ppt_url && (
+                  <a
+                    href={`http://localhost:5000${submission.ppt_url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                  >
+                    <FaDownload /> Download PPT
+                  </a>
+                )}
+                {submission.yt_link && (
+                  <a
+                    href={submission.yt_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <FaYoutube /> Watch Video
+                  </a>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FaLightbulb className="text-slate-400 text-2xl" />
+              </div>
+              <h3 className="text-lg font-medium text-slate-900">No Submission Yet</h3>
+              <p className="text-slate-500 mt-2 mb-6">
+                You haven't submitted an idea for any problem statement.
+              </p>
+              <Button onClick={() => setActiveTab("problems")}>
+                Browse Problems
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

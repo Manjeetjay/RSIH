@@ -1,163 +1,100 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../../services/api";
-import { toast } from "react-toastify";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import Table, { TableRow, TableCell } from "../../components/ui/Table";
 import Button from "../../components/ui/Button";
+import { FaUsers, FaTrash } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 export default function SpocDashboard() {
-  const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
-  const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchData();
+    fetchTeams();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchTeams = async () => {
     try {
-      const [teamsRes, collegeRes] = await Promise.all([
-        api.get("/api/spoc/teams"),
-        api.get("/api/spoc/college")
-      ]);
-      setTeams(teamsRes.data);
-      setCollege(collegeRes.data);
+      const res = await api.get("/api/spoc/teams");
+      setTeams(res.data);
     } catch (err) {
-      toast.error("Failed to fetch data");
+      console.error(err);
+      // toast.error("Failed to load teams");
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) return <div className="p-12 text-center text-slate-500">Loading dashboard...</div>;
-
-  const teamLimit = 15;
-  const hasReachedLimit = teams.length >= teamLimit;
+  const handleDeleteTeam = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this team?")) return;
+    try {
+      await api.delete(`/api/spoc/team/${id}`);
+      toast.success("Team deleted successfully");
+      fetchTeams();
+    } catch (err) {
+      toast.error("Failed to delete team");
+    }
+  };
 
   return (
-    <div className="page-container">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-slate-800 mb-2">SPOC Dashboard</h1>
-          <p className="text-slate-600">Manage teams for {college?.name || "your institution"}</p>
-        </motion.div>
-
-        {/* Team Limit Notice */}
-        {hasReachedLimit && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-8 p-4 bg-sky-50 border-l-4 border-sky-500 rounded-lg"
-          >
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">⚠️</span>
-              <div>
-                <h3 className="font-bold text-sky-900 mb-1">Team Registration Limit Reached</h3>
-                <p className="text-sky-800 text-sm">
-                  You have registered {teams.length} teams. Each SPOC can register a maximum of {teamLimit} teams.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-slate-800">
-            Registered Teams ({teams.length}/{teamLimit})
-          </h2>
-          <Button
-            onClick={() => navigate("/dashboard/spoc/teams/register")}
-            disabled={hasReachedLimit}
-            className={hasReachedLimit ? "opacity-50 cursor-not-allowed" : ""}
-          >
-            {hasReachedLimit ? `✓ Limit Reached (${teamLimit}/${teamLimit})` : "+ Register New Team"}
-          </Button>
+    <div className="min-h-screen bg-slate-50 py-10 px-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        <div className="flex flex-col">
+          <h1 className="text-3xl font-bold text-slate-900">SPOC Dashboard</h1>
+          <p className="text-slate-600">Manage your institution's teams</p>
         </div>
 
-        {teams.length === 0 ? (
-          <div className="card p-12 text-center bg-white shadow-lg rounded-xl border border-slate-100">
-            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
-              👥
-            </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">No Teams Yet</h3>
-            <p className="text-slate-500 mb-6">Start by registering your first team for the hackathon.</p>
-            <Button onClick={() => navigate("/dashboard/spoc/teams/register")}>
-              Register Team
-            </Button>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teams.map((team, index) => (
-              <motion.div
-                key={team.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="card p-6 bg-white shadow-lg rounded-xl border border-slate-100 hover:shadow-xl transition-shadow cursor-pointer group"
-                onClick={() => navigate(`/dashboard/spoc/teams/${team.id}`)}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-xl font-bold text-slate-800 group-hover:text-blue-700 transition-colors">
-                    {team.name}
-                  </h3>
-                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <Table headers={["Team Name", "Leader", "Members", "Status", "Actions"]}>
+            {teams.map((team) => (
+              <TableRow key={team.id}>
+                <TableCell className="font-medium text-slate-900">{team.name}</TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{team.member1_name}</p>
+                    <p className="text-xs text-slate-500">{team.member1_email}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-slate-600 space-y-1">
+                    <p>2. {team.member2_name}</p>
+                    <p>3. {team.member3_name}</p>
+                    <p>4. {team.member4_name}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
                     Active
                   </span>
-                </div>
-
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center gap-3 text-slate-600">
-                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm">👤</span>
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase tracking-wider">Leader</p>
-                      <p className="font-medium">{team.leader_name}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-slate-600">
-                    <span className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-sm">📧</span>
-                    <div>
-                      <p className="text-xs text-slate-400 uppercase tracking-wider">Email</p>
-                      <p className="font-medium text-sm">{team.leader_email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <Button variant="outline" className="w-full justify-center">
-                  View Details
-                </Button>
-              </motion.div>
+                </TableCell>
+                <TableCell>
+                  <button
+                    onClick={() => handleDeleteTeam(team.id)}
+                    className="text-red-600 hover:text-red-800 p-2"
+                    title="Delete Team"
+                  >
+                    <FaTrash />
+                  </button>
+                </TableCell>
+              </TableRow>
             ))}
-          </div>
-        )}
-
-        {/* Stats */}
-        {teams.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-12 grid md:grid-cols-3 gap-6"
-          >
-            <div className="card p-6 bg-blue-600 text-white rounded-xl shadow-lg">
-              <p className="text-4xl font-bold mb-1">{teams.length}</p>
-              <p className="text-blue-100 font-medium">Total Teams Registered</p>
-            </div>
-            <div className="card p-6 bg-white border border-slate-100 rounded-xl shadow-md">
-              <p className="text-4xl font-bold text-slate-800 mb-1">{college?.name ? 1 : 0}</p>
-              <p className="text-slate-500 font-medium">Institutions Managed</p>
-            </div>
-            <div className="card p-6 bg-white border border-slate-100 rounded-xl shadow-md">
-              <p className="text-4xl font-bold text-green-600 mb-1">100%</p>
-              <p className="text-slate-500 font-medium">Active Status</p>
-            </div>
-          </motion.div>
-        )}
+            {teams.length === 0 && (
+              <tr>
+                <td colSpan="5" className="p-12 text-center text-slate-500">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
+                      <FaUsers className="text-slate-400 text-xl" />
+                    </div>
+                    <p>No teams registered yet.</p>
+                    <p className="text-xs text-slate-400">
+                      Use the Register Team option from the navigation to add your first team.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            )}
+          </Table>
+        </div>
       </div>
     </div>
   );
