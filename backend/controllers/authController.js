@@ -30,7 +30,6 @@ export const loginUser = async (req, res) => {
 // ✅ Register for all users (SPOC, Team Leader, Admin)
 export const registerUser = async (req, res) => {
   const { name, email, password, role, phone, institution_name } = req.body;
-  const identification_doc = req.file ? `/uploads/docs/${req.file.filename}` : null;
 
   try {
     // Check if user exists
@@ -44,6 +43,22 @@ export const registerUser = async (req, res) => {
 
     let query = "";
     let values = [];
+    let identification_doc = null;
+
+    // Upload identification document to Supabase if provided
+    if (req.file && role === 'SPOC') {
+      try {
+        const { uploadToSupabase } = await import('../utils/supabaseUpload.js');
+        identification_doc = await uploadToSupabase(
+          req.file.buffer,
+          req.file.originalname,
+          'spoc-documents'
+        );
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload identification document' });
+      }
+    }
 
     if (role === 'SPOC') {
       query = `INSERT INTO users (name, email, password, role, phone, institution_name, identification_doc, verified) 

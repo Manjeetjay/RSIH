@@ -26,11 +26,26 @@ export const getAllPS = async (req, res) => {
 
 export const submitIdea = async (req, res) => {
   const { ps_id, title, description, abstract, yt_link } = req.body;
-  const ppt_url = req.file ? `/uploads/ppts/${req.file.filename}` : null;
-
   const userId = req.user.id;
 
   try {
+    let ppt_url = null;
+
+    // Upload PPT file to Supabase if provided
+    if (req.file) {
+      try {
+        const { uploadToSupabase } = await import('../utils/supabaseUpload.js');
+        ppt_url = await uploadToSupabase(
+          req.file.buffer,
+          req.file.originalname,
+          'team-presentations'
+        );
+      } catch (uploadError) {
+        console.error('File upload error:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload presentation file' });
+      }
+    }
+
     // Find team_id based on user email
     const userRes = await pool.query("SELECT email FROM users WHERE id = $1", [userId]);
     const userEmail = userRes.rows[0].email;

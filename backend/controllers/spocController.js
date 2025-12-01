@@ -1,5 +1,7 @@
 import bcrypt from "bcrypt";
 import { pool } from "../config/db.js";
+import crypto from 'crypto';
+import { sendTeamCredentials } from '../utils/emailService.js';
 
 export const registerTeam = async (req, res) => {
   const {
@@ -39,12 +41,17 @@ export const registerTeam = async (req, res) => {
     );
 
     // Also create a user login for the team leader (Member 1)
-    // Password defaults to 'team123' or generated? Let's use 'team123' for now or email as password
-    const hashedPassword = await bcrypt.hash("team123", 10);
+    // Generate random password
+    const randomPassword = crypto.randomBytes(4).toString('hex'); // 8 char hex string
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
     await pool.query(
       "INSERT INTO users (name, email, password, role, verified) VALUES ($1, $2, $3, 'TEAM_LEADER', true) ON CONFLICT (email) DO NOTHING",
       [member1_name, member1_email, hashedPassword]
     );
+
+    // Send credentials via email
+    await sendTeamCredentials(member1_email, member1_name, randomPassword);
 
     res.status(201).json(newTeam.rows[0]);
   } catch (err) {

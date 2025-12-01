@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/db.js";
 import { getAllPS } from "./controllers/adminController.js";
+// import { initializeSupabaseBuckets } from "./config/initSupabase.js";
 
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -20,6 +21,9 @@ app.use("/uploads", express.static("uploads"));
 pool.connect()
   .then(() => console.log("Connected to PostgreSQL"))
   .catch((err) => console.error("Database connection error:", err.message));
+
+// Initialize Supabase buckets
+// initializeSupabaseBuckets();
 
 // Public routes (no authentication required)
 app.get("/api/public/ps", getAllPS); // Public route for problem statements

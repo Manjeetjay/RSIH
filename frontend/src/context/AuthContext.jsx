@@ -14,13 +14,11 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const navigate = useNavigate();
-
-  useEffect(() => {
+  const [user, setUser] = useState(() => {
     const u = localStorage.getItem("user");
-    if (u) setUser(JSON.parse(u));
-  }, []);
+    return u ? JSON.parse(u) : null;
+  });
+  const navigate = useNavigate();
 
   const login = (data) => {
     localStorage.setItem("token", data.token);
