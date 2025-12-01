@@ -15,14 +15,14 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const u = localStorage.getItem("user");
+    const u = sessionStorage.getItem("user");
     return u ? JSON.parse(u) : null;
   });
   const navigate = useNavigate();
 
   const login = (data) => {
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("user", JSON.stringify(data.user));
     setUser(data.user);
 
     if (data.user.role === "ADMIN") navigate("/dashboard/admin");
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.clear();
+    sessionStorage.clear();
     setUser(null);
     navigate("/");
   };
